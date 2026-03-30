@@ -85,4 +85,6 @@ func init() {
 	rootCmd.Flags().BoolVarP(&force, "force", "f", false, "Bypass safety confirmations (USE WITH CAUTION)")
 	rootCmd.Flags().BoolVarP(&explain, "explain", "e", false, "Provide detailed explanation of the generated command")
 	rootCmd.Flags().StringVarP(&provider, "provider", "p", "", "Force a specific tool/provider (aws, k8s, terraform, etc.)")
+
+	rootCmd.AddCommand(configCmd)
 }
