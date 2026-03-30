@@ -22,11 +22,16 @@ var configCmd = &cobra.Command{
 
 		fmt.Println("🛠️  Welcome to the devsh interactive setup wizard!")
 
+		defaultProvider := config.AppConfig.LLMProvider
+		if defaultProvider == "openai" && config.AppConfig.OpenAIBaseURL != "" {
+			defaultProvider = "other (openai-compatible)"
+		}
+
 		// 1. Ask for LLM Provider
 		providerPrompt := &survey.Select{
 			Message: "Select your LLM Provider:",
-			Options: []string{"openai", "anthropic", "gemini", "ollama"},
-			Default: config.AppConfig.LLMProvider,
+			Options: []string{"openai", "anthropic", "gemini", "ollama", "other (openai-compatible)"},
+			Default: defaultProvider,
 		}
 		var provider string
 		err = survey.AskOne(providerPrompt, &provider)
@@ -34,7 +39,11 @@ var configCmd = &cobra.Command{
 			fmt.Println("Setup cancelled.")
 			os.Exit(0)
 		}
-		config.AppConfig.LLMProvider = provider
+		if provider == "other (openai-compatible)" {
+			config.AppConfig.LLMProvider = "openai"
+		} else {
+			config.AppConfig.LLMProvider = provider
+		}
 
 		// 2. Ask for API Key based on provider
 		switch provider {
@@ -47,9 +56,20 @@ var configCmd = &cobra.Command{
 			if key != "" {
 				config.AppConfig.OpenAPIKey = key
 			}
+			config.AppConfig.OpenAIBaseURL = "" // Reset to official OpenAI URL
+
+		case "other (openai-compatible)":
+			keyPrompt := &survey.Password{
+				Message: "Enter your API Key (leave blank if none required):",
+			}
+			var key string
+			survey.AskOne(keyPrompt, &key)
+			if key != "" {
+				config.AppConfig.OpenAPIKey = key
+			}
 			
 			urlPrompt := &survey.Input{
-				Message: "Enter OpenAI Base URL (Leave blank for default API, or set for Groq, DeepSeek, vLLM, etc.):",
+				Message: "Enter Remote Base URL (e.g., https://api.groq.com/openai/v1):",
 				Default: config.AppConfig.OpenAIBaseURL,
 			}
 			survey.AskOne(urlPrompt, &config.AppConfig.OpenAIBaseURL)

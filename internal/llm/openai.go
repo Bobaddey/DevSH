@@ -46,7 +46,6 @@ func (e *OpenAIEngine) Generate(ctx context.Context, input string) (*types.Comma
 					Content: input,
 				},
 			},
-			Temperature: 0.2, // Low temperature for deterministic output
 		},
 	)
 
