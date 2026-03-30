@@ -20,14 +20,17 @@ sudo mv devsh /usr/local/bin/
 
 ## Configuration
 
-On first run, `devsh` creates a default configuration in `~/.devsh/config.yaml`.
-You can customize it:
-```yaml
-llm_provider: openai
-model: gpt-4
-safety_level: high
+The easiest way to configure `devsh` is via the interactive setup wizard:
+```bash
+devsh config
 ```
-*Note: Make sure `OPENAI_API_KEY` is exported in your environment or set in the config file.*
+This command allows you to seamlessly configure:
+- **LLM Provider**: Choose between OpenAI, Anthropic, Gemini, or Ollama.
+- **API Keys / Base URLs**: Effortlessly set your API secrets or configure OpenAI-compatible providers (Groq, vLLM, DeepSeek, etc.) by passing your custom Remote Base URL.
+- **Model Selection**: Switch between gpt-4o, claude-3-5-sonnet-20240620, gemini-1.5-pro, or llama3.
+- **Safety Levels**: Control devsh's aggressiveness (Low, Medium, High).
+
+Alternatively, you can manually modify `~/.devsh/config.yaml` or set environment variables like `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY`.
 
 ## Usage Examples
 
