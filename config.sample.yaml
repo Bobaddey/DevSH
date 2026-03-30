@@ -1,0 +1,34 @@
+# devsh - Developer Shell
+# Place this file in ~/.devsh/config.yaml
+
+# llm_provider can be 'openai', 'ollama', 'anthropic', 'gemini'
+llm_provider: "openai"
+
+# specify the exact model string (e.g., gpt-4o, claude-3-5-sonnet-20240620, gemini-1.5-pro, llama3)
+model: "gpt-4o"
+
+# API Keys (You can also set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY in your shell environment)
+# openai_api_key: "sk-..."
+# anthropic_api_key: "sk-ant-..."
+# gemini_api_key: "AIzaSy..."
+
+# For OpenAI-compatible endpoints (like Groq, DeepSeek, vLLM, LMStudio)
+# openai_base_url: "https://api.groq.com/openai/v1"
+
+# If using ollama, specify the host URL
+ollama_host: "http://localhost:11434"
+
+# safety_level can be 'low', 'medium', or 'high'
+#  low: auto-executes most commands, asks for destructive ones
+#  medium: auto-executes read-only/safe commands, asks for everything else
+#  high: asks for almost everything unless 100% matched by a safe rule
+safety_level: "high"
+
+# Default tools you want to make available
+default_tools:
+  - "bash"
+  - "kubectl"
+  - "aws"
+  - "terraform"
+  - "docker"
+  - "git"
