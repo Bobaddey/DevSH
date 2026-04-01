@@ -3,6 +3,7 @@ package context
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -13,6 +14,8 @@ type Environment struct {
 	HasTerraform bool
 	HasAWS       bool
 	HasDocker    bool
+	HasMinikube  bool
+	OS           string
 
 	// Any specific variables or metadata discovered
 	WorkDir string
@@ -21,7 +24,9 @@ type Environment struct {
 // Detect analyzes the current directory, parent directories, and user's environment
 // to populate the Context with active capabilities.
 func Detect() *Environment {
-	env := &Environment{}
+	env := &Environment{
+		OS: runtime.GOOS,
+	}
 
 	// Determine working directory
 	wd, err := os.Getwd()
@@ -50,8 +55,9 @@ func Detect() *Environment {
 	}
 
 	// Docker (simple check for daemon/socket or Dockerfile)
-	if os.Getenv("DOCKER_HOST") != "" || fileExists("/var/run/docker.sock") || fileExists(filepath.Join(wd, "Dockerfile")) {
-		env.HasDocker = true
+	// Minikube
+	if dirExists(filepath.Join(homeDir(), ".minikube")) {
+		env.HasMinikube = true
 	}
 
 	return env
@@ -88,6 +94,15 @@ func fileExists(path string) bool {
 		return false
 	}
 	return info != nil && !info.IsDir()
+}
+
+// dirExists checks if a specific directory exists
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info != nil && info.IsDir()
 }
 
 // checkFilesWithExt looks for any file in the current dir with the given suffix

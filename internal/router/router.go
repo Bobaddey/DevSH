@@ -124,11 +124,15 @@ func buildContextualInput(originalInput string, env *devshCtx.Environment) strin
 	if env.HasDocker {
 		activeContexts = append(activeContexts, "Docker environment")
 	}
+	if env.HasMinikube {
+		activeContexts = append(activeContexts, "Minikube environment")
+	}
 
 	contextHeader := ""
-	if len(activeContexts) > 0 {
-		contextHeader = fmt.Sprintf("Environment Context: The user is currently in a directory with the following detected features -> %s.\n", strings.Join(activeContexts, ", "))
+	if len(activeContexts) > 0 || env.OS != "" {
+		contextHeader = fmt.Sprintf("Environment Context: The user is currently in a directory with the following detected features -> %s. Operating System: %s.\n", strings.Join(activeContexts, ", "), env.OS)
 		contextHeader += "Prioritize generating commands relevant to this context if appropriate. "
+		contextHeader += "If any of these contexts are detected, you MUST prefix your command with that tool (e.g. use 'git status' instead of 'status', 'docker ps' instead of 'ps'). "
 	}
 
 	return contextHeader + "User Request: " + originalInput

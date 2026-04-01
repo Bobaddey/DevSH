@@ -3,9 +3,9 @@
 `devsh` is a production-grade CLI tool written in Go that allows developers to execute terminal-based operations using natural language. It safely translates plain English into terminal commands across Linux, Kubernetes, AWS, Terraform, Docker, and Git.
 
 ## Architecture Highlights
-- **Context Engine**: Automatically sniffs environment markers (e.g. `.git`, `.terraform`, `KUBECONFIG`) to prioritize contextual commands.
-- **Rule Engine**: Fast fallback for common commands using static pattern matching.
-- **LLM Engine**: Pluggable architecture supporting OpenAI (GPT-4) and local models via Ollama.
+- **Context Engine**: Automatically sniffs environment markers (e.g. `.git`, `.terraform`, `KUBECONFIG`, `.minikube`) and the host **Operating System** (macOS, Linux) to prioritize contextual, platform-correct commands.
+- **Rule Engine**: Fast fallback for common commands (like `docker ps` or `ls`) using static pattern matching for instant, deterministic results.
+- **LLM Engine**: Pluggable architecture supporting OpenAI (GPT-4), Anthropic (Claude), Gemini, and local models via Ollama.
 - **Safety Engine**: Validates commands before execution against blocklists, risk levels, and user-configured safety preferences.
 - **Plugin System**: Modular generators for domain-specific tools.
 
@@ -36,12 +36,12 @@ Alternatively, you can manually modify `~/.devsh/config.yaml` or set environment
 
 **Single Command Mode**
 ```bash
-$ devsh "create a folder called logs"
+$ devsh create a folder called logs
 🤖 Explained: Creates a new directory
 💻 Command:  mkdir -p logs (Confidence: 1.00) (Risk: low)
 🚀 Executing...
 
-$ devsh "list all pods in kube-system namespace"
+$ devsh list all pods in kube-system namespace
 🤖 Explained: Direct Kubernetes command execution
 💻 Command:  kubectl get pods -n kube-system (Confidence: 1.00) (Risk: medium)
 ⚠️ This command requires confirmation. Execute? (y/N): y
