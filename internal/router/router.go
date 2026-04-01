@@ -74,6 +74,15 @@ func (r *Router) Process(ctx context.Context, input string, force bool, dryRun b
 
 	// Print explanation
 	fmt.Printf("\n🤖 Explained: %s\n", cmd.Explanation)
+	if cmd.Insights != "" {
+		fmt.Printf("💡 Insights: %s\n", cmd.Insights)
+	}
+	if len(cmd.Recommendations) > 0 {
+		fmt.Println("📋 Recommendations:")
+		for i, rec := range cmd.Recommendations {
+			fmt.Printf("  %d. %s\n", i+1, rec)
+		}
+	}
 	fmt.Printf("💻 Command:  %s (Confidence: %.2f) (Risk: %s)\n", cmd.Command, cmd.Confidence, cmd.RiskLevel)
 
 	if dryRun {

@@ -22,5 +22,14 @@ func Run(cmd *types.Command) error {
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 
-	return execCmd.Run()
+	err := execCmd.Run()
+	
+	// If the command might have messed with terminal state (like raw mode), 
+	// try to restore sanity. This is a best-effort fix for artifacts like ^M.
+	if err != nil {
+		// Only run on Unix-like systems if in a terminal
+		exec.Command("stty", "sane").Run() 
+	}
+
+	return err
 }

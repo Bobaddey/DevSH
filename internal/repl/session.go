@@ -1,12 +1,11 @@
 package repl
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/devsh/internal/router"
 )
 
@@ -24,14 +23,21 @@ func NewSession(r *router.Router) *Session {
 
 // Start begins the REPL loop
 func (s *Session) Start(ctx context.Context, force bool) error {
-	reader := bufio.NewReader(os.Stdin)
-
 	fmt.Println("🚀 Welcome to devsh interactive mode (type 'exit' or 'quit' to leave)")
 
 	for {
-		fmt.Print("\ndevsh> ")
-		input, err := reader.ReadString('\n')
+		var input string
+		prompt := &survey.Input{
+			Message: "devsh>",
+		}
+		
+		err := survey.AskOne(prompt, &input)
 		if err != nil {
+			// Handle Ctrl+C or terminal issues
+			if err.Error() == "interrupt" {
+				fmt.Println("\nGoodbye!")
+				return nil
+			}
 			return err
 		}
 
@@ -48,7 +54,6 @@ func (s *Session) Start(ctx context.Context, force bool) error {
 		// Prepend history for context references like "it" or "that pod"
 		contextualInput := input
 		if len(s.history) > 0 && (strings.Contains(input, "it") || strings.Contains(input, "that") || strings.Contains(input, "these")) {
-			// Find the last command that might be relevant
 			lastCmd := s.history[len(s.history)-1]
 			contextualInput = fmt.Sprintf("Previous intent/command was: '%s'. User now asks: '%s'", lastCmd, input)
 		}
@@ -58,9 +63,7 @@ func (s *Session) Start(ctx context.Context, force bool) error {
 			fmt.Printf("❌ Error: %v\n", err)
 		}
 
-		// Add to history
 		s.history = append(s.history, input)
-		// keep history small
 		if len(s.history) > 10 {
 			s.history = s.history[1:]
 		}
