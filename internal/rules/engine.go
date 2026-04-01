@@ -35,6 +35,12 @@ var builtinRules = []Rule{
 		CommandTemplate: "kubectl get pods%s",
 		Explanation: "Lists all pods in the given namespace or default namespace",
 	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^(?:what docker image is currently running|show running docker images|list docker images)`),
+		Tool:        "docker",
+		CommandTemplate: "docker ps -a --format='{{.Image}}'",
+		Explanation: "Uses docker ps to show information about running images.",
+	},
 }
 
 // Evaluate checks if the input matches any known static rules for fast execution

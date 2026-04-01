@@ -25,6 +25,7 @@ var rootCmd = &cobra.Command{
 	Use:   "devsh [natural language command]",
 	Short: "devsh is a natural language terminal assistant",
 	Long:  "devsh translates natural language into executable, safe terminal commands.",
+	Args:  cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := config.LoadConfig()
 		if err != nil {
