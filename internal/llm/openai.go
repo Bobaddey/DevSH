@@ -31,21 +31,35 @@ func NewOpenAIEngine() (*OpenAIEngine, error) {
 	}, nil
 }
 
-func (e *OpenAIEngine) Generate(ctx context.Context, input string) (*types.Command, error) {
+func (e *OpenAIEngine) Generate(ctx context.Context, input string, history []types.ChatMessage) (*types.Command, error) {
+	messages := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: SystemPrompt,
+		},
+	}
+
+	for _, msg := range history {
+		role := openai.ChatMessageRoleUser
+		if msg.Role == "assistant" {
+			role = openai.ChatMessageRoleAssistant
+		}
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    role,
+			Content: msg.Content,
+		})
+	}
+
+	messages = append(messages, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleUser,
+		Content: input,
+	})
+
 	resp, err := e.client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: e.model,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleSystem,
-					Content: SystemPrompt,
-				},
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: input,
-				},
-			},
+			Model:    e.model,
+			Messages: messages,
 		},
 	)
 

@@ -7,12 +7,13 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/devsh/internal/router"
+	"github.com/devsh/internal/types"
 )
 
 // Session represents the interactive REPL state
 type Session struct {
-	router  *router.Router
-	history []string
+	router      *router.Router
+	chatHistory []types.ChatMessage
 }
 
 func NewSession(r *router.Router) *Session {
@@ -51,21 +52,17 @@ func (s *Session) Start(ctx context.Context, force bool) error {
 			break
 		}
 
-		// Prepend history for context references like "it" or "that pod"
-		contextualInput := input
-		if len(s.history) > 0 && (strings.Contains(input, "it") || strings.Contains(input, "that") || strings.Contains(input, "these")) {
-			lastCmd := s.history[len(s.history)-1]
-			contextualInput = fmt.Sprintf("Previous intent/command was: '%s'. User now asks: '%s'", lastCmd, input)
-		}
-
-		err = s.router.Process(ctx, contextualInput, force, false)
+		err = s.router.Process(ctx, input, s.chatHistory, force, false)
 		if err != nil {
 			fmt.Printf("❌ Error: %v\n", err)
 		}
 
-		s.history = append(s.history, input)
-		if len(s.history) > 10 {
-			s.history = s.history[1:]
+		// Update history with this turn
+		s.chatHistory = append(s.chatHistory, types.ChatMessage{Role: "user", Content: input})
+		// We could also append the assistant's response here if we want full memory
+		// For now, let's just keep the last 10 turns
+		if len(s.chatHistory) > 20 {
+			s.chatHistory = s.chatHistory[2:]
 		}
 	}
 

@@ -40,21 +40,31 @@ type ollamaResponse struct {
 	Message ollamaMessage `json:"message"`
 }
 
-func (e *OllamaEngine) Generate(ctx context.Context, input string) (*types.Command, error) {
-	reqBody := ollamaRequest{
-		Model: e.model,
-		Messages: []ollamaMessage{
-			{
-				Role:    "system",
-				Content: SystemPrompt,
-			},
-			{
-				Role:    "user",
-				Content: input,
-			},
+func (e *OllamaEngine) Generate(ctx context.Context, input string, history []types.ChatMessage) (*types.Command, error) {
+	messages := []ollamaMessage{
+		{
+			Role:    "system",
+			Content: SystemPrompt,
 		},
-		Stream: false,
-		Format: "json", // Force JSON output for local models
+	}
+
+	for _, msg := range history {
+		messages = append(messages, ollamaMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		})
+	}
+
+	messages = append(messages, ollamaMessage{
+		Role:    "user",
+		Content: input,
+	})
+
+	reqBody := ollamaRequest{
+		Model:    e.model,
+		Messages: messages,
+		Stream:   false,
+		Format:   "json", 
 	}
 
 	jsonData, err := json.Marshal(reqBody)

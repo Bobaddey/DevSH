@@ -17,6 +17,8 @@ import (
 type Router struct {
 	llmEngine   llm.Engine
 	pluginsList []plugins.Plugin
+	LastCmd     *types.Command
+	LastErr     error
 }
 
 func NewRouter(pluginsList []plugins.Plugin) (*Router, error) {
@@ -32,7 +34,7 @@ func NewRouter(pluginsList []plugins.Plugin) (*Router, error) {
 }
 
 // Process handles a natural language query end-to-end.
-func (r *Router) Process(ctx context.Context, input string, force bool, dryRun bool) error {
+func (r *Router) Process(ctx context.Context, input string, history []types.ChatMessage, force bool, dryRun bool) error {
 	var cmd *types.Command
 
 	// 1. Context Engine
@@ -59,9 +61,9 @@ func (r *Router) Process(ctx context.Context, input string, force bool, dryRun b
 	// C. If still no match, fallback to LLM Engine
 	if cmd == nil {
 		// Inject context into the LLM prompt
-		contextualInput := buildContextualInput(input, env)
+		contextualInput := buildContextualInput(input, env, r.LastCmd, r.LastErr)
 		
-		generatedCmd, err := r.llmEngine.Generate(ctx, contextualInput)
+		generatedCmd, err := r.llmEngine.Generate(ctx, contextualInput, history)
 		if err != nil {
 			return fmt.Errorf("LLM Generation failed: %w", err)
 		}
@@ -109,6 +111,11 @@ func (r *Router) Process(ctx context.Context, input string, force bool, dryRun b
 	// 4. Execution Engine
 	fmt.Println("🚀 Executing...")
 	err = executor.Run(cmd)
+	
+	// Store result for future troubleshooting context
+	r.LastCmd = cmd
+	r.LastErr = err
+
 	if err != nil {
 		return fmt.Errorf("execution failed: %w", err)
 	}
@@ -116,7 +123,7 @@ func (r *Router) Process(ctx context.Context, input string, force bool, dryRun b
 	return nil
 }
 
-func buildContextualInput(originalInput string, env *devshCtx.Environment) string {
+func buildContextualInput(originalInput string, env *devshCtx.Environment, lastCmd *types.Command, lastErr error) string {
 	var activeContexts []string
 	if env.HasGit {
 		activeContexts = append(activeContexts, "Git repository")
@@ -144,5 +151,14 @@ func buildContextualInput(originalInput string, env *devshCtx.Environment) strin
 		contextHeader += "If any of these contexts are detected, you MUST prefix your command with that tool (e.g. use 'git status' instead of 'status', 'docker ps' instead of 'ps'). "
 	}
 
-	return contextHeader + "User Request: " + originalInput
+	// Inject last command info for troubleshooting queries (e.g. "why did it fail?")
+	if lastCmd != nil {
+		status := "SUCCEEDED"
+		if lastErr != nil {
+			status = fmt.Sprintf("FAILED with error: %v", lastErr)
+		}
+		contextHeader += fmt.Sprintf("\nLAST COMMAND INFO: Tool: %s, Command: '%s', Status: %s. ", lastCmd.Tool, lastCmd.Command, status)
+	}
+
+	return contextHeader + "\nUser Request: " + originalInput
 }

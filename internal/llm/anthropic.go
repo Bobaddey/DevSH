@@ -40,17 +40,26 @@ type anthropicResponse struct {
 	} `json:"content"`
 }
 
-func (e *AnthropicEngine) Generate(ctx context.Context, input string) (*types.Command, error) {
+func (e *AnthropicEngine) Generate(ctx context.Context, input string, history []types.ChatMessage) (*types.Command, error) {
+	messages := []map[string]interface{}{}
+	
+	for _, msg := range history {
+		messages = append(messages, map[string]interface{}{
+			"role":    msg.Role,
+			"content": msg.Content,
+		})
+	}
+
+	messages = append(messages, map[string]interface{}{
+		"role":    "user",
+		"content": input,
+	})
+
 	reqBody := anthropicRequest{
 		Model:     e.model,
 		MaxTokens: 1024,
-		System:    SystemPrompt + "\nAlways return structured JSON ONLY without markdown codeblocks.", // Anthropic can be strict
-		Messages: []map[string]interface{}{
-			{
-				"role":    "user",
-				"content": input,
-			},
-		},
+		System:    SystemPrompt + "\nAlways return structured JSON ONLY without markdown codeblocks.", 
+		Messages:  messages,
 	}
 
 	jsonData, err := json.Marshal(reqBody)

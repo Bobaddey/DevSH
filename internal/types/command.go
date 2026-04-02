@@ -10,3 +10,9 @@ type Command struct {
 	Recommendations []string `json:"recommendations"` // Optional troubleshooting steps or advice
 	Insights        string   `json:"insights"`        // Detailed technical explanation of the issue
 }
+
+// ChatMessage represents a single turn in a conversation.
+type ChatMessage struct {
+	Role    string // "user" or "assistant"
+	Content string
+}

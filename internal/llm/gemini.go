@@ -43,19 +43,30 @@ type geminiResponse struct {
 	} `json:"candidates"`
 }
 
-func (e *GeminiEngine) Generate(ctx context.Context, input string) (*types.Command, error) {
+func (e *GeminiEngine) Generate(ctx context.Context, input string, history []types.ChatMessage) (*types.Command, error) {
+	contents := []map[string]interface{}{}
+	
+	for _, msg := range history {
+		contents = append(contents, map[string]interface{}{
+			"role": msg.Role,
+			"parts": []map[string]interface{}{
+				{"text": msg.Content},
+			},
+		})
+	}
+
+	contents = append(contents, map[string]interface{}{
+		"role": "user",
+		"parts": []map[string]interface{}{
+			{"text": input},
+		},
+	})
+
 	reqBody := geminiRequest{
 		SystemInstruction: map[string]interface{}{
 			"parts": []map[string]interface{}{{"text": SystemPrompt}},
 		},
-		Contents: []map[string]interface{}{
-			{
-				"role": "user",
-				"parts": []map[string]interface{}{
-					{"text": input},
-				},
-			},
-		},
+		Contents: contents,
 		GenerationConfig: map[string]interface{}{
 			"responseMimeType": "application/json",
 		},

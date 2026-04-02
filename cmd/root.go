@@ -65,7 +65,7 @@ var rootCmd = &cobra.Command{
 
 		input := strings.Join(args, " ")
 		
-		err = r.Process(ctx, input, force, dryRun)
+		err = r.Process(ctx, input, nil, force, dryRun)
 		if err != nil {
 			fmt.Printf("❌ Error: %v\n", err)
 			os.Exit(1)

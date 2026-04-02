@@ -12,7 +12,7 @@ import (
 
 // Engine represents an LLM API client capable of command generation
 type Engine interface {
-	Generate(ctx context.Context, input string) (*types.Command, error)
+	Generate(ctx context.Context, input string, history []types.ChatMessage) (*types.Command, error)
 }
 
 const SystemPrompt = `You are the devsh DevOps Advisor and Command Generator. 
