@@ -9,6 +9,7 @@ type Command struct {
 	RiskLevel       string   `json:"risk_level"`      // "low", "medium", "high"
 	Recommendations []string `json:"recommendations"` // Optional troubleshooting steps or advice
 	Insights        string   `json:"insights"`        // Detailed technical explanation of the issue
+	Silent          bool     `json:"silent"`          // If true, skip explanation and just run.
 }
 
 // ChatMessage represents a single turn in a conversation.

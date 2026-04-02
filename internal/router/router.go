@@ -75,17 +75,19 @@ func (r *Router) Process(ctx context.Context, input string, history []types.Chat
 	}
 
 	// Print explanation
-	fmt.Printf("\n🤖 Explained: %s\n", cmd.Explanation)
-	if cmd.Insights != "" {
-		fmt.Printf("💡 Insights: %s\n", cmd.Insights)
-	}
-	if len(cmd.Recommendations) > 0 {
-		fmt.Println("📋 Recommendations:")
-		for i, rec := range cmd.Recommendations {
-			fmt.Printf("  %d. %s\n", i+1, rec)
+	if !cmd.Silent {
+		fmt.Printf("\n🤖 Explained: %s\n", cmd.Explanation)
+		if cmd.Insights != "" {
+			fmt.Printf("💡 Insights: %s\n", cmd.Insights)
 		}
+		if len(cmd.Recommendations) > 0 {
+			fmt.Println("📋 Recommendations:")
+			for i, rec := range cmd.Recommendations {
+				fmt.Printf("  %d. %s\n", i+1, rec)
+			}
+		}
+		fmt.Printf("💻 Command:  %s (Confidence: %.2f) (Risk: %s)\n", cmd.Command, cmd.Confidence, cmd.RiskLevel)
 	}
-	fmt.Printf("💻 Command:  %s (Confidence: %.2f) (Risk: %s)\n", cmd.Command, cmd.Confidence, cmd.RiskLevel)
 
 	if dryRun {
 		return nil
@@ -109,7 +111,9 @@ func (r *Router) Process(ctx context.Context, input string, history []types.Chat
 	}
 
 	// 4. Execution Engine
-	fmt.Println("🚀 Executing...")
+	if !cmd.Silent {
+		fmt.Println("🚀 Executing...")
+	}
 	err = executor.Run(cmd)
 	
 	// Store result for future troubleshooting context
@@ -146,7 +150,14 @@ func buildContextualInput(originalInput string, env *devshCtx.Environment, lastC
 
 	contextHeader := ""
 	if len(activeContexts) > 0 || env.OS != "" {
-		contextHeader = fmt.Sprintf("Environment Context: The user is currently in a directory with the following detected features -> %s. Operating System: %s.\n", strings.Join(activeContexts, ", "), env.OS)
+		shellInfo := ""
+		if env.Shell != "" {
+			shellInfo = fmt.Sprintf("User Shell: %s. ", env.Shell)
+			if env.HistoryFile != "" {
+				shellInfo += fmt.Sprintf("History File: %s. ", env.HistoryFile)
+			}
+		}
+		contextHeader = fmt.Sprintf("Environment Context: The user is currently in a directory with the following detected features -> %s. Operating System: %s. %s\n", strings.Join(activeContexts, ", "), env.OS, shellInfo)
 		contextHeader += "Prioritize generating commands relevant to this context if appropriate. "
 		contextHeader += "If any of these contexts are detected, you MUST prefix your command with that tool (e.g. use 'git status' instead of 'status', 'docker ps' instead of 'ps'). "
 	}

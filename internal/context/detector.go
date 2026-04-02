@@ -16,6 +16,8 @@ type Environment struct {
 	HasDocker    bool
 	HasMinikube  bool
 	OS           string
+	Shell        string
+	HistoryFile  string
 
 	// Any specific variables or metadata discovered
 	WorkDir string
@@ -26,6 +28,21 @@ type Environment struct {
 func Detect() *Environment {
 	env := &Environment{
 		OS: runtime.GOOS,
+	}
+
+	// Detect Shell
+	shellPath := os.Getenv("SHELL")
+	if shellPath != "" {
+		parts := strings.Split(shellPath, "/")
+		env.Shell = parts[len(parts)-1]
+		
+		// Guess history file
+		home := homeDir()
+		if env.Shell == "zsh" {
+			env.HistoryFile = filepath.Join(home, ".zsh_history")
+		} else if env.Shell == "bash" {
+			env.HistoryFile = filepath.Join(home, ".bash_history")
+		}
 	}
 
 	// Determine working directory

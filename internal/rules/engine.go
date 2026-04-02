@@ -13,6 +13,7 @@ type Rule struct {
 	Tool        string
 	CommandTemplate string
 	Explanation string
+	Silent      bool
 }
 
 // engine internally holds the rules
@@ -41,6 +42,20 @@ var builtinRules = []Rule{
 		CommandTemplate: "docker ps -a --format='{{.Image}}'",
 		Explanation: "Uses docker ps to show information about running images.",
 	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^(?:clear|cls)$`),
+		Tool:        "bash",
+		CommandTemplate: "clear",
+		Explanation: "Clears the terminal screen.",
+		Silent:      true,
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^(ls|pwd|date|whoami|uptime|hostname|id|df|du|ps|top|free|vmstat|iostat|uname|man|cat|grep|sed|awk)(?:\s+.*)?$`),
+		Tool:        "bash",
+		CommandTemplate: "%s",
+		Explanation: "Fast-path for common bash utility.",
+		Silent:      true,
+	},
 }
 
 // Evaluate checks if the input matches any known static rules for fast execution
@@ -63,6 +78,9 @@ func Evaluate(input string) *types.Command {
 					} else {
 						cmdStr = "kubectl get pods"
 					}
+				} else if rule.CommandTemplate == "%s" {
+					// Use the entire matched input for raw passthrough
+					cmdStr = trimmed
 				} else {
 					cmdStr = strings.Replace(rule.CommandTemplate, "%s", arg, 1)
 				}
@@ -78,6 +96,7 @@ func Evaluate(input string) *types.Command {
 				Confidence:  1.0,
 				Explanation: rule.Explanation,
 				RiskLevel:   "low",
+				Silent:      rule.Silent,
 			}
 		}
 	}

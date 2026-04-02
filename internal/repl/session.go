@@ -8,6 +8,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/devsh/internal/router"
 	"github.com/devsh/internal/types"
+	devshCtx "github.com/devsh/internal/context"
 )
 
 // Session represents the interactive REPL state
@@ -24,7 +25,7 @@ func NewSession(r *router.Router) *Session {
 
 // Start begins the REPL loop
 func (s *Session) Start(ctx context.Context, force bool) error {
-	fmt.Println("🚀 Welcome to devsh interactive mode (type 'exit' or 'quit' to leave)")
+	s.printWelcome()
 
 	for {
 		var input string
@@ -59,12 +60,43 @@ func (s *Session) Start(ctx context.Context, force bool) error {
 
 		// Update history with this turn
 		s.chatHistory = append(s.chatHistory, types.ChatMessage{Role: "user", Content: input})
-		// We could also append the assistant's response here if we want full memory
-		// For now, let's just keep the last 10 turns
+		// Keep history manageable
 		if len(s.chatHistory) > 20 {
 			s.chatHistory = s.chatHistory[2:]
 		}
 	}
 
 	return nil
+}
+
+func (s *Session) printWelcome() {
+	banner := `
+  _____   ________      _______ _    _ 
+ |  __ \ |  ____\ \    / / ____| |  | |
+ | |  | || |__   \ \  / / (___ | |__| |
+ | |  | ||  __|   \ \/ / \___ \|  __  |
+ | |__| || |____   \  /  ____) | |  | |
+ |_____/ |______|   \/  |_____/|_|  |_|
+	`
+	fmt.Printf("\033[36m%s\033[0m\n", banner)
+	fmt.Println("\033[1m✨ Welcome to DEVSH - Your DevOps AI Advisor\033[0m")
+	fmt.Println("──────────────────────────────────────────────────")
+
+	env := devshCtx.Detect()
+	fmt.Printf("💻 \033[33mOS:\033[0m %s\n", env.OS)
+	
+	var tools []string
+	if env.HasGit { tools = append(tools, "Git") }
+	if env.HasKube { tools = append(tools, "Kubernetes") }
+	if env.HasDocker { tools = append(tools, "Docker") }
+	if env.HasMinikube { tools = append(tools, "Minikube") }
+	if env.HasTerraform { tools = append(tools, "Terraform") }
+	
+	if len(tools) > 0 {
+		fmt.Printf("🛠️ \033[33mContext:\033[0m %s\n", strings.Join(tools, ", "))
+	}
+
+	fmt.Println("🧠 \033[33mMemory:\033[0m Multi-turn Active")
+	fmt.Println("🏁 \033[33mExit:\033[0m Type 'exit' or 'ctrl+c'")
+	fmt.Println("──────────────────────────────────────────────────\n")
 }
