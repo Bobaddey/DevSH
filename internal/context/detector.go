@@ -15,6 +15,10 @@ type Environment struct {
 	HasAWS       bool
 	HasDocker    bool
 	HasMinikube  bool
+	HasFfmpeg    bool
+	HasJQ        bool
+	HasYQ        bool
+	HasHelm      bool
 	OS           string
 	Shell        string
 	HistoryFile  string
