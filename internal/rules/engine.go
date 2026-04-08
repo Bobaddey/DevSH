@@ -50,11 +50,23 @@ var builtinRules = []Rule{
 		Silent:      true,
 	},
 	{
+		Pattern:     regexp.MustCompile(`(?i)^(?:what (?:is the |is )|show |check )?(?:the )?version (?:of )?([a-zA-Z0-9_-]+)(?:\s+.*)?$`),
+		Tool:        "bash",
+		CommandTemplate: "%s --version",
+		Explanation: "Checks the version of the specified tool.",
+	},
+	{
 		Pattern:     regexp.MustCompile(`(?i)^(ls|pwd|date|whoami|uptime|hostname|id|df|du|ps|top|free|vmstat|iostat|uname|man|cat|grep|sed|awk)(?:\s+.*)?$`),
 		Tool:        "bash",
 		CommandTemplate: "%s",
 		Explanation: "Fast-path for common bash utility.",
 		Silent:      true,
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^(?:what is the |show )?free memory(?: space)?(?:\s+.*)?$`),
+		Tool:        "bash",
+		CommandTemplate: "vm_stat | perl -ne '/page size of (\\d+)/ && ($s=$1); /Pages free:\\s+(\\d+)/ && printf(\"Free Memory: %.2f MB\\n\", $1*$s/1024/1024)'",
+		Explanation: "Checks free memory using vm_stat (macOS specific calculation).",
 	},
 }
 
@@ -62,6 +74,7 @@ var builtinRules = []Rule{
 // Returns a Command object if a match is found, nil otherwise.
 func Evaluate(input string) *types.Command {
 	trimmed := strings.TrimSpace(input)
+	trimmed = strings.TrimSuffix(trimmed, "?")
 
 	for _, rule := range builtinRules {
 		matches := rule.Pattern.FindStringSubmatch(trimmed)

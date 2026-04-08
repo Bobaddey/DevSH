@@ -19,6 +19,7 @@ type Router struct {
 	pluginsList []plugins.Plugin
 	LastCmd     *types.Command
 	LastErr     error
+	LastOutput  string
 }
 
 func NewRouter(pluginsList []plugins.Plugin) (*Router, error) {
@@ -34,7 +35,7 @@ func NewRouter(pluginsList []plugins.Plugin) (*Router, error) {
 }
 
 // Process handles a natural language query end-to-end.
-func (r *Router) Process(ctx context.Context, input string, history []types.ChatMessage, force bool, dryRun bool) error {
+func (r *Router) Process(ctx context.Context, input string, history []types.ChatMessage, force bool, dryRun bool) (*types.Command, error) {
 	var cmd *types.Command
 
 	// 1. Context Engine
@@ -61,17 +62,17 @@ func (r *Router) Process(ctx context.Context, input string, history []types.Chat
 	// C. If still no match, fallback to LLM Engine
 	if cmd == nil {
 		// Inject context into the LLM prompt
-		contextualInput := buildContextualInput(input, env, r.LastCmd, r.LastErr)
+		contextualInput := buildContextualInput(input, env, r.LastCmd, r.LastErr, r.LastOutput)
 		
 		generatedCmd, err := r.llmEngine.Generate(ctx, contextualInput, history)
 		if err != nil {
-			return fmt.Errorf("LLM Generation failed: %w", err)
+			return nil, fmt.Errorf("LLM Generation failed: %w", err)
 		}
 		cmd = generatedCmd
 	}
 
 	if cmd == nil {
-		return fmt.Errorf("could not generate a command for the given input")
+		return nil, fmt.Errorf("could not generate a command for the given input")
 	}
 
 	// Print explanation
@@ -90,13 +91,13 @@ func (r *Router) Process(ctx context.Context, input string, history []types.Chat
 	}
 
 	if dryRun {
-		return nil
+		return cmd, nil
 	}
 
 	// 3. Safety Engine
 	needsConfirm, err := safety.Check(cmd, force)
 	if err != nil {
-		return fmt.Errorf("Safety block: %w", err)
+		return cmd, fmt.Errorf("Safety block: %w", err)
 	}
 
 	if needsConfirm {
@@ -106,7 +107,7 @@ func (r *Router) Process(ctx context.Context, input string, history []types.Chat
 		resp = strings.ToLower(strings.TrimSpace(resp))
 		if resp != "y" && resp != "yes" {
 			fmt.Println("Execution aborted.")
-			return nil
+			return cmd, nil
 		}
 	}
 
@@ -114,20 +115,21 @@ func (r *Router) Process(ctx context.Context, input string, history []types.Chat
 	if !cmd.Silent {
 		fmt.Println("🚀 Executing...")
 	}
-	err = executor.Run(cmd)
+	output, err := executor.Run(cmd)
 	
 	// Store result for future troubleshooting context
 	r.LastCmd = cmd
 	r.LastErr = err
+	r.LastOutput = output
 
 	if err != nil {
-		return fmt.Errorf("execution failed: %w", err)
+		return cmd, fmt.Errorf("execution failed: %w", err)
 	}
 
-	return nil
+	return cmd, nil
 }
 
-func buildContextualInput(originalInput string, env *devshCtx.Environment, lastCmd *types.Command, lastErr error) string {
+func buildContextualInput(originalInput string, env *devshCtx.Environment, lastCmd *types.Command, lastErr error, lastOutput string) string {
 	var activeContexts []string
 	if env.HasGit {
 		activeContexts = append(activeContexts, "Git repository")
@@ -169,6 +171,15 @@ func buildContextualInput(originalInput string, env *devshCtx.Environment, lastC
 			status = fmt.Sprintf("FAILED with error: %v", lastErr)
 		}
 		contextHeader += fmt.Sprintf("\nLAST COMMAND INFO: Tool: %s, Command: '%s', Status: %s. ", lastCmd.Tool, lastCmd.Command, status)
+		
+		if lastOutput != "" {
+			// Limit output to prevent context window bloat
+			truncatedOutput := lastOutput
+			if len(truncatedOutput) > 2048 {
+				truncatedOutput = truncatedOutput[:2048] + "\n[Output Truncated...]"
+			}
+			contextHeader += fmt.Sprintf("\nLAST COMMAND OUTPUT:\n%s\n", truncatedOutput)
+		}
 	}
 
 	return contextHeader + "\nUser Request: " + originalInput

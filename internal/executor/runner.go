@@ -1,7 +1,9 @@
 package executor
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
@@ -9,18 +11,23 @@ import (
 )
 
 // Run executes a command locally, attaching stdin, stdout, and stderr.
-// It uses `bash -c` generally to support piping and shell builtins if needed.
-func Run(cmd *types.Command) error {
+// It returns the combined output and any error encountered.
+func Run(cmd *types.Command) (string, error) {
 	if cmd == nil || cmd.Command == "" {
-		return fmt.Errorf("no command provided to execute")
+		return "", fmt.Errorf("no command provided to execute")
 	}
 
 	execCmd := exec.Command("sh", "-c", cmd.Command)
 	
-	// Preserve interactivity
+	// Buffer to capture output for LLM analysis
+	var buf bytes.Buffer
+	multiOut := io.MultiWriter(os.Stdout, &buf)
+	multiErr := io.MultiWriter(os.Stderr, &buf)
+
+	// Preserve interactivity while capturing
 	execCmd.Stdin = os.Stdin
-	execCmd.Stdout = os.Stdout
-	execCmd.Stderr = os.Stderr
+	execCmd.Stdout = multiOut
+	execCmd.Stderr = multiErr
 
 	err := execCmd.Run()
 	
@@ -31,5 +38,5 @@ func Run(cmd *types.Command) error {
 		exec.Command("stty", "sane").Run() 
 	}
 
-	return err
+	return buf.String(), err
 }

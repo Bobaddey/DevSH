@@ -13,7 +13,7 @@ func TestRunCommandIntegration(t *testing.T) {
 		Command: "echo 'devsh testing' > /dev/null",
 	}
 
-	err := Run(cmd)
+	_, err := Run(cmd)
 	if err != nil {
 		t.Errorf("Unexpected error running safe command: %v", err)
 	}
@@ -24,7 +24,7 @@ func TestRunCommandIntegration(t *testing.T) {
 		Command: "exit 1",
 	}
 
-	err = Run(cmdFail)
+	_, err = Run(cmdFail)
 	if err == nil {
 		t.Errorf("Expected error running a failing command, got nil")
 	}

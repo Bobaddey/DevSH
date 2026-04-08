@@ -3,9 +3,12 @@ package repl
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
+	"github.com/chzyer/readline"
 	"github.com/devsh/internal/router"
 	"github.com/devsh/internal/types"
 	devshCtx "github.com/devsh/internal/context"
@@ -25,25 +28,36 @@ func NewSession(r *router.Router) *Session {
 
 // Start begins the REPL loop
 func (s *Session) Start(ctx context.Context, force bool) error {
+	home, _ := os.UserHomeDir()
+	historyFile := filepath.Join(home, ".devsh_history")
+
+	l, err := readline.NewEx(&readline.Config{
+		Prompt:          "\033[32mdevsh>\033[0m ",
+		HistoryFile:     historyFile,
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+	})
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+
 	s.printWelcome()
 
 	for {
-		var input string
-		prompt := &survey.Input{
-			Message: "devsh>",
-		}
-		
-		err := survey.AskOne(prompt, &input)
-		if err != nil {
-			// Handle Ctrl+C or terminal issues
-			if err.Error() == "interrupt" {
-				fmt.Println("\nGoodbye!")
+		line, err := l.Readline()
+		if err == readline.ErrInterrupt {
+			if len(line) == 0 {
+				fmt.Println("Goodbye!")
 				return nil
 			}
-			return err
+			continue
+		} else if err == io.EOF {
+			fmt.Println("Goodbye!")
+			return nil
 		}
 
-		input = strings.TrimSpace(input)
+		input := strings.TrimSpace(line)
 		if input == "" {
 			continue
 		}
@@ -53,14 +67,19 @@ func (s *Session) Start(ctx context.Context, force bool) error {
 			break
 		}
 
-		err = s.router.Process(ctx, input, s.chatHistory, force, false)
+		cmd, err := s.router.Process(ctx, input, s.chatHistory, force, false)
 		if err != nil {
 			fmt.Printf("❌ Error: %v\n", err)
 		}
 
-		// Update history with this turn
+		// Update history with this turn (both User and Assistant)
 		s.chatHistory = append(s.chatHistory, types.ChatMessage{Role: "user", Content: input})
-		// Keep history manageable
+		if cmd != nil {
+			// Save the explanation as the assistant's content
+			s.chatHistory = append(s.chatHistory, types.ChatMessage{Role: "assistant", Content: cmd.Explanation})
+		}
+
+		// Keep history manageable (last 10 turns = 20 messages)
 		if len(s.chatHistory) > 20 {
 			s.chatHistory = s.chatHistory[2:]
 		}
